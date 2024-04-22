@@ -1,0 +1,208 @@
+---
+title: "Sprawozdanie 2"
+author:
+  name: Adrian Pilarczyk i Diana Popiel
+  affiliation: Matematyka Stosowana
+output:
+  html_document:
+    theme: readable
+    df_print: paged
+    toc: true
+    toc_float: true
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+zad2 <- read_csv("zad2.csv")
+zad3t <- read_csv("zad3t.csv")
+```
+
+## Zadanie 1.
+
+Treść: 
+
+Firma A produkuje telefony komórkowe. Na pudełku nowego modelu S firmy A widnieje napis, że bateria wytrzymuje średnio 48 godzin. Nie uwierzyliśmy firmie A i zostawiliśmy na 42 różnych telefonach modelu S włączone wideo tak długo, aż się rozładowały. W pliku zad2.csv znajdują się dane zebrane przez nas podczas tego eksperymentu. Uzasadnij, że możesz użyć testu t i użyj testu t, aby zweryfikować, czy firma A nie okłamuje konsumentów.
+
+Rozwiązanie:
+
+Test t-Studenta jest testem parametrycznym. Aby go użyć, powinniśmy zadbać, aby nasze dane:
+
+- były wybierane z jednej populacji, 
+
+- były od siebie niezależne, 
+
+- wartości powinny być przybliżone do rozkładu normalnego.
+
+W treści zadania widzimy, że mamy 42 różnych telefonów modelu S. Możemy z tego wnioskować, że telefony został wylosowane z konkretnej populacji. Dodatkowo każda wytrzymałość baterii telefonu jest niezależna od innych. Pozostało nam tylko sprawdzić, czy podane wartości przybliżają rozkład normalny.
+
+Aby to sprawdzić, możemy wykonać wykres QQ-plot oraz test Shapiro-Wilka:
+
+```{r}
+normal_sample <- tibble(sample = zad2$durability)
+qqplot_durability <- ggplot(data=normal_sample, aes(sample=sample)) + stat_qq() + geom_qq_line() + xlab('Kwantyle teoretyczne') + ylab('Kwantyle empiryczne')
+qqplot_durability
+```
+
+Z podanego wykresu możemy wywnioskować, że większość wartości zbliża się do wykresu prostej y=x, co sugeruję, że rozkład danych jest zbliżony do rozkładu normalnego. Jednak widzimy, że parę punktów odstaję od reszty. Aby potwierdzić naszą hipotezę o normalności danych, przeprowadzamy test Shapiro-Wilka. Zakładamy poziom istotności na poziomie $\alpha = 0.05$:
+
+```{r}
+shapiro.test(zad2$durability)
+```
+
+Z danych wyjściowych testu wartość $p-value > 0,05$, gdzie $0,05$ jest założonym poziomem istotności $\alpha$, oznacza, że rozkład danych nie różni się istotnie od rozkładu normalnego. Innymi słowy, możemy założyć normalność danych.
+
+Dzięki temu mamy słuszność, aby użyć testu t-Studenta na naszych danych i przeprowadzić naszą hipotezę. Załózmy, że prawdziwa średnia wytrzymałośc baterii w telefonie wynosi $\mu =48$. Tworzymy twierdzenie, że:
+
+
+- hipoteza zerowa $H_0:\mu=48$,
+
+- hipoteza alternatywna $H_1:\mu\neq48$.
+
+Sprawdzamy je, używając testu t-Studenta:
+
+```{r}
+t.test(zad2$durability, mu=48)
+```
+Wynik testu pokazuję nam, że:
+
+- "p-value = 5.301e-13" - $p-value<0.05$ zatem istnieje istotna różnica między średnią wytrzymałością baterii a deklarowaną wartością,
+
+- "alternative hypothesis: true mean is not equal to $48$" - odrzuciliśmy hipotezę zerową i przyjeliśmy hipotezę alternatywną,
+
+- "95 percent confidence interval: $(51.45556 ; 53.13110)$, sample estimates: mean of x: $52.29333$" - średnia wyników leży w 95% przedziale ufności i wynosi ona $52.29333$.
+
+Z powyższych wniosków możemy stwierdzić, że odrzuciliśmy hipoteze zerową. Przyjmujemy hipotezę alternatywną, że firma A okłamuje swoich konsumentów mówiąc, że średnio bateria telefonu modelu S wytrzymuje 48 godzin. Natomiast widzimy, że średnia wynosi 52.2933 co oznacza, że średnia wytrzymałość telefonów jest nawet wyższa niż zakłada producent.
+
+## Zadanie 2.
+
+Treść: 
+
+Firma B produkuje czekoladę. Po latach zarząd postanowił, że zmienią opakowanie ich czekolady, co na pewno zwiększy sprzedaż. W pliku zad3t.csv znajdują się dane ze sprzedaży czekolady z nowym opakowaniem w jednym ze sklepów w jednym z dużych polskich miast oraz dane ze sprzedaży czekolady ze starym opakowaniem w jednym ze sklepów w jednym z dużych polskich miast. Używając testu t studenta sprawdź czy zarząd miał racje i nowe opakowanie zwiększyło sprzedaż.
+
+Rozwiązanie:
+
+Aby ocenić czy zarząd miał rację, musimy użyć testu t-Studenta na naszych danych. Wczytajmy naszą ramke danych:
+
+```{r}
+chocolate_df <- data.frame(zad3t)
+chocolate_df
+```
+
+Widzimy z powyższego okna tabeli, że nasze dane są nieposortowane. Są tylko wpisane poszczególne wartości przypisane do danych rodzajów opakowania. Aby odpowiednio wykonać test, potrzebujemy mieć 2 kolumny: jedna z wartościami sprzedaży dla starego opakowania i druga dla nowego opakowania. Wykonujemy transformację naszej tabeli danych na nową:
+
+```{r}
+chocolate_df_trans <- chocolate_df %>% pivot_wider(names_from = pack, values_from = sold) %>% unnest(c(new_pack, old_pack))
+chocolate_df_trans
+```
+
+Dzięki niej mamy zebrane poszczególne wartości sprzedaży pod odpowiednimi typami opakowań. Zakładając, że powyższe dane są niezależne oraz że pochodzą z rozkładu normalnego, możemy wykonać test t-Studenta i ocenić jego wynik:
+
+- hipotezy zerowej $H_0$: "Średnia sprzedaż nowych opakowń jest większa niż sprzedaż w starych opakowaniach",
+
+- hipotezy alternatywnej $H_1$: "Średnia sprzedaż nowych opakowń jest mniejsza lub równa sprzedaży starych opakowań".
+
+Przeprowadzamy test, zakładając poziom istotności na poziomie $\alpha = 0.05$:
+
+```{r}
+t.test(chocolate_df_trans$old_pack, chocolate_df_trans$new_pack)
+```
+Możemy wnioskować z powyższego testu, że:
+
+- "p-value = 0.0003761" - $p-value<0.05$ zatem istnieje znacząca różnica pomiędzy wynikami z obu grup,
+
+- przedział 95% ufności (-34.51438 ; -10.58240) - różnica między starymi opakowaniami a nowymi,
+
+- średnia sprzedaży w starych opakowaniach jest mniejsza od średniej z nowych opakowań.
+
+Dodatkowo możemy zobaczyć również na wykresie pudełkowym jak znacząca jest różnica pomiędzy obiema grupami opakowań:
+
+```{r}
+ggplot(data=chocolate_df, aes(x=pack, y=sold, color=pack)) + geom_boxplot() + labs(title = "Wykres pudełkowy sprzedaży czekolady") + xlab("Opakowanie") + ylab("Sprzedaż")
+```
+
+Na tym wykresie możemy zobaczyć rozkład wartości sprzedaży dla poszczególnych grup. Górna krawędź pudełka reprezentuje trzeci kwartyl (75%), linia wewnątrz pudełka oznacza medianę (50%), a dolna krawędź pudełka reprezentuje pierwszy kwartyl (25%). Analizując wykresy pudełkowe, można stwierdzić, że próbka $old_pack$ jest bardziej skupiona wokół wartości mediany. Z kolei próba $new_pack$ znajduje się wyżej, blisko trzeciego kwartyla, co wskazuje na większą sprzedaż nowych opakowań (obie próbki miały taką liczbę wartości).
+
+Z powyższych wniosków oraz wykresu pudełkowego możemy powiedzieć, że przyjmujemy hipotezę zerową, że zarząd miał rację na temat wzrostu sprzedaży poprzez wprowadzenie nowych opakowań, na poziomie istotności $\alpha = 0.05$.
+
+
+## Zadanie 3.
+
+Treść: 
+
+Użyj metody bootstrap do wykonania powyższych testów i porównaj wyniki.
+
+Rozwiązanie:
+
+Dla zadania 1:
+
+```{r}
+bootstrap_durability <- zad2$durability - mean(zad2$durability) + 48
+n <- length(zad2$durability)
+bootstrap_stat <- rep(0,5000)
+
+mu0 <- 48
+
+compute_z <- function(sample,mu){
+  se <- sqrt((1/(n-1))*sum((sample-mean(sample))^2))
+  return((mean(sample)-mu)/((se)/sqrt(n)))
+}
+
+for(i in 1:5000){
+  curr_sample <- sample(bootstrap_durability, size=n, replace=TRUE)
+  bootstrap_stat[i] <- compute_z(curr_sample, mu0)
+}
+
+bootstrap_stat_tbl <- tibble(stat = bootstrap_stat)
+
+ggplot(data = bootstrap_stat_tbl, aes(x = stat)) + geom_histogram(binwidth=0.25)
+```
+
+Możemy za pomocą metody bootstap sprawdzić $p-value$, które pokaże nam istotność naszej hipotezy zerowej. Musimy skorzystać tutaj z CTG:
+
+Definiujemy zmienną $Z=\frac{\overline{X_n} - \mu}{\frac{\sigma^2}{\sqrt{n}}}$. Wówczas jest ona zbieżna według rozkładu do zmiennej o rozkładzie $\mathcal{N}(0,1)$.
+
+Dzięki temu mamy:
+
+```{r}
+Z_sd <- sqrt((1/(n-1))*sum((zad2$durability-mean(zad2$durability))^2))
+mu0 <- 48
+Z_stat <- (mean(zad2$durability) - mu0)/(Z_sd/sqrt(n))
+
+bootstrap_p <- sum((bootstrap_stat <= -abs(Z_stat))|(bootstrap_stat >= abs(Z_stat)))/5000
+
+paste("p-value testu bootstrap wynosi", round(bootstrap_p,100))
+```
+Widzimy również, że przybliżone $p-value$ również jest mniejsze niż ustalony poziom istotności $\alpha = 0.05$. Zatem możemy wnioskowac, że metoda bootstrap pomaga nam przybliżyć wyniki testu t-Studenta i również odrzucić hipotezę zerową.
+
+Dla zadania 2:
+
+```{r}
+n <- length(chocolate_df_trans$new_pack)
+
+bootstrap_stat <- rep(0,5000)
+
+for(i in 1:5000){
+  curr_sample_1 <- sample(chocolate_df_trans$old_pack, size=n, replace=TRUE)
+  curr_sample_2 <- sample(chocolate_df_trans$new_pack, size=n, replace=TRUE)
+  bootstrap_stat[i] <- mean(curr_sample_1) - mean(curr_sample_2)
+}
+bootstrap_stat <- tibble(mean_diff = bootstrap_stat)
+
+ggplot(bootstrap_stat, aes(x=mean_diff)) + geom_histogram(binwidth=0.25) + geom_vline(xintercept=c(quantile(bootstrap_stat$mean_diff, 0.025),quantile(bootstrap_stat$mean_diff, 0.975)), linetype='dotted', color='magenta')
+```
+
+Obszar zaznaczony różowymi liniami nie tylko reprezentuje obszar decyzyjny, ale również stanowi 95% przedział ufności na różnicę średnich w naszych próbach, który został uzyskany za pomocą metody bootstrap. Metoda bootstrap może być stosowana zawsze, przy odpowiednim dostosowaniu liczby prób bootstrap. 
+
+Jednak w przypadku testu t-Studenta, mamy również parametryczną formę przedziału ufności. W zadaniu drugim za pomocą testu t-Studenta uzyskaliśmy przedział ufności dla różnicy pomiedzy średnimi:
+
+$(-34.51438 ; -10.58240)$. 
+
+Natomiast metodą bootstrap:
+
+```{r}
+quantile(bootstrap_stat$mean_diff,c(0.025,0.975))
+```
+
+Widzimy, że oba przedziały są do siebie zbliżone, zatem metoda bootstrap przybliża wyniki z testu t-Studenta.
+
+Dzięki zastosowaniu metody bootstrap w poprzednich zadaniach otrzymaliśmy analogiczne wyniki, co dowodzi, że niezależnie od wybranej metody dochodzimy do tego samego wyniku i możemy wyciągnąć podobne wnioski na temat danych próbek.

@@ -1,0 +1,113 @@
+---
+title: "Sprawozdanie 3"
+author:
+  name: Adrian Pilarczyk i Diana Popiel
+  affiliation: Matematyka Stosowana
+output:
+  html_document:
+    theme: readable
+    df_print: paged
+    toc: true
+    toc_float: true
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+## Zadanie 1.
+
+Treść: 
+
+W pliku sp3.csv znajdują się dane dotyczące ilości tweetów napisanych przez prezesa pewnej firmy danego dnia oraz cenę otwarcia akcji tej firmy tego dnia. Czy cena otwarcia ma wpływ na ilość tweetow? Jeżeli tak to jaki? Sprawdź istotność statystyczną współczynnika korelacji na poziomie istotności $\alpha=0.05$ za pomocą metody parametrycznej. Wyznacz przedział ufności za pomocą metody bootstrap oraz wykonaj test permutacyjny. Porównaj otrzymane wyniki.
+
+Rozwiązanie:
+
+Najpierw załadujmy nasze dane:
+
+```{r}
+set.seed(3)
+data <- read_csv("sp3.csv")
+data
+```
+
+Aby określić, czy nasze dane są ze sobą skorelowane musimy obliczyć współczynnik korelacji Pearsona $r_{xy}$. Można skorzystać z gotowego wzoru lub z komendy w R:
+
+```{r}
+correlation_coef <- cor(data$Tweets, data$Open)
+print(paste("Współczynnik korelacji:", correlation_coef))
+```
+
+Widzimy, że korelacja między ceną otwarcia akcji a ilością tweetów jest korelacją dodatnią. Można powiedzieć, że jest prawie silna (uznaje się korelacje silną $r_{xy}>0.75$). Jednak nie dotyczy to każdych danych. Zobaczmy więc na wykresie jak wyglądają nasze dane:
+
+```{r}
+plot1 <- ggplot(data, aes(Tweets, Open)) + geom_point() + ggtitle("Wykres ceny otwarcia w zależności od ilości tweetów") + xlab("Ilość tweetów") + ylab("Cena otwarcia akcji")
+plot1
+```
+
+Widzimy, że nie wszystkie wartości ceny otwarcia akcji rosną razem z ilością tweetów. Zobaczmy, czy możemy stwierdzić na jakim obszarze ta korelacja jest znacząca. Posłużymy się tutaj histogramem:
+
+```{r}
+plot2 <- ggplot(data, aes(x = Tweets)) + geom_histogram(bins = 15, fill = "skyblue", color = "black") + ggtitle("Histogram ceny otwarcia w zależności od ilości tweetów") + xlab("Ilość tweetów") + ylab("Cena otwarcia akcji")
+plot2
+```
+
+Widzimy z histogramu, że wraz ze wzrostem tweetów z 15 do 22 cena otwarcia akcji rośnie, tak samo w przedziale od 25 do 27. Możemy stwierdzić na podstawie naszej analizy, że korelacja ta jest znacząca dla naszych danych i poprawnie pokazuje jej dodatniość.
+
+Aby móc wyznaczyć parametryczny test na istotność statystyczną współczynnika korelacji, musimy założyć, że nasze dane pochodzą z rozkładu normalnego. Możemy to zobaczyć za pomocą testu Shapiro-Wilka:
+
+```{r}
+shapiro.test(data$Tweets)
+```
+
+```{r}
+shapiro.test(data$Open)
+```
+
+Widzimy, że $p-value$ dla ilości tweetów jest większe od ustalonego poziomu istotności $\alpha=0.05$. Natomiast $p-value$ dla ceny otwarcia akcji jest mniejsze niż $0.05$. Zatem dane te nie pochodzą z rozkładu normalnego. Z tego może wynikać, że nasz współczynnik korelacji pomimo tego, że jest dodatni, nie jest na tyle silny, aby być wyżej niż $0.75$.
+
+Przejdźmy do wykonania testu parametrycznego mimo, że nie są spełnione założenia:
+
+```{r}
+cor.test(data$Tweets, data$Open)
+```
+
+Otrzymujemy z niego przedział ufności wynoszący (0.4862191 ; 0.8543101).
+
+Aby porównać nasze wyniki, wykonamy podobną analizę metodą bootstrap:
+
+```{r}
+k <- 1000
+n <- length(data$Tweets)
+bootstrap_cors <- rep(0,k)
+for(i in 1:k){
+  bootstrap_cors[i] <- sample_n(data,n,replace=TRUE) %>% summarise(cor=cor(Tweets,Open)) %>% pull()}
+boostrap_stat<-ggplot(data=tibble(cor=bootstrap_cors), aes(x=cor)) + geom_histogram(bins=20) 
+boostrap_stat
+```
+
+Możemy zobaczyć z histogramu, że wartości skupiają się między 0,6 a 0,9. Przypatrzmy się bliżej i wyznaczmy 95% przedział ufności z próbki bootstrapowej:
+
+```{r}
+quantile(bootstrap_cors, c(0.025,0.975))
+```
+
+Porównując ten przedział ufności z poprzednim [(0.4862191 ; 0.8543101)] jest przesunięty w prawo, jednak oscyluje w podobnych wartościach.
+
+Wykonajmy również dla tej metody test permutacyjny:
+
+```{r}
+k <- 5000
+n <- length(data$Tweets)
+perm_cors <- rep(0,k)
+for(i in 1:k){
+  perm_cors[i] <- cor(data$Tweets, sample(data$Tweets, n, replace=FALSE))}
+quantile(perm_cors, c(0.025,0.975))
+ggplot(data=tibble(cor=perm_cors), aes(x=cor)) + geom_histogram(bins=20) 
+```
+
+Widzimy z naszego testu, że korelacja zmiennych ułożonych przypadkowo przez bootstrap jest mała i ma najwięcej wartości bliskich zeru.
+
+W wyniku przeprowadzonych analiz istnieje dodatni wpływ ceny otwarcia na liczbę tweetów. Jednak wartość współczynnika korelacji nie jest znacząco silna, co oznacza, że związek między tymi zmiennymi może być ograniczony lub istnieją inne czynniki wpływające na ceny akcji otwarcia przez liczbę tweetów.
+
+Ważne jest, że podczas przeprowadzania testu istotności statystycznej współczynnika korelacji, uwzględniliśmy fakt, że dane nie spełniają założenia normalności, które jest wymagane dla tego testu. Mimo to, porównanie wyników testu istotności z wynikami uzyskanymi za pomocą metody bootstrap wykazało zbliżone rezultaty, co dodaje pewności do obserwacji dotyczących współczynnika korelacji.

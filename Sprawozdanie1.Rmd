@@ -1,0 +1,230 @@
+---
+title: "Sprawozdanie 1"
+author:
+  name: Adrian Pilarczyk i Diana Popiel
+  affiliation: Matematyka Stosowana
+output:
+  html_document:
+    theme: readable
+    df_print: paged
+    toc: true
+    toc_float: true
+---
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+## Zadanie 1. 
+
+Wygeneruj 3 próby z rozkładu Gamma z wybranymi przez siebie (różnymi) parametrami $k, \lambda$. Porównaj otrzymane średnie i wariancje w próbach z wartościami teoretycznymi. Narysuj histogram każdej z prób i porównaj go z teoretyczną gęstością. Narysuj również teoretyczne dystrybuanty rozważanych zmiennych (najlepiej wszystkie 3 na jednym obrazku dla porównania).
+
+```{r}
+k1 <- 2
+lam1 <- 4
+k2 <- 7
+lam2 <- 3
+k3 <- 15
+lam3 <- 9
+
+sample1 <- rgamma(1000, shape = k1, rate = lam1)
+sample2 <- rgamma(1000, shape = k2, rate = lam2)
+sample3 <- rgamma(1000, shape = k3, rate = lam3)
+```
+
+```{r}
+sample_mean1 <- mean(sample1)
+sample_var1 <- var(sample1)
+sample_mean2 <- mean(sample2)
+sample_var2 <- var(sample2)
+sample_mean3 <- mean(sample3)
+sample_var3 <- var(sample3)
+```
+
+Teoretyczna wartość oczekiwana zmiennej o rozkładzie Gamma wynosi $\frac{k}{\lambda}$, a wariancja $\frac{k}{\lambda^2}$. Korzystamy z powyższych wzorów dla każdej z 3 próbek:
+
+```{r}
+theor_mean1 <- k1/lam1
+theor_var1 <- k1/(lam1^2)
+theor_mean2 <- k2/lam2
+theor_var2 <- k2/(lam2^2)
+theor_mean3 <- k3/lam3
+theor_var3 <- k3/(lam3^2)
+```
+
+```{r}
+x <- seq(0, 6, length = 1000)
+den_sample1 <- dgamma(sample1, k1, lam1)
+den_sample2 <- dgamma(sample2, k2, lam2)
+den_sample3 <- dgamma(sample3, k3, lam3)
+```
+
+Histogram dla pierwszej próbki:
+
+```{r}
+wykres1<- ggplot() + 
+  geom_histogram(aes(x = sample1), bins = 30, fill = "lightblue", alpha = 0.8) +
+  geom_line(aes(x = x, y = 190*dgamma(x,k1,lam1)), color = "blue") +
+  labs(title='Histogram gęstości próbki pierwszej', x='Wartość', y='Gęstość')
+wykres1
+```
+
+Histogram dla drugiej próbki:
+
+```{r}
+wykres2<- ggplot() + 
+  geom_histogram(aes(x = sample2), bins = 30, fill = "brown", alpha = 0.5) +
+  geom_line(aes(x = x, y = 215*dgamma(x,k2,lam2)), color = "green") +
+  labs(title='Histogram gęstości próbki drugiej', x='Wartość', y='Gęstość')
+wykres2
+```
+
+Histogram dla trzeciej próbki:
+
+```{r}
+wykres3<- ggplot() + 
+  geom_histogram(aes(x = sample3), bins = 30, fill = "purple", alpha = 0.5) +
+  geom_line(aes(x = x, y = 203*dgamma(x,k3,lam3)), color = "red") +
+  labs(title='Histogram gęstości próbki trzeciej', x='Wartość', y='Gęstość')
+wykres3
+```
+
+
+Widzimy, że powyższe histogramy próbek oraz ich teoretyczne gęstości (pomnożone dla lepszej widoczności na wykresie) są ze sobą zbliżone. Następnie poniżej mamy wykres z poszczególnymi dystrybuantami:
+
+Dystrybuanta 1 rozkładu gamma z parametrami $k_1=2$ i $\lambda = 4$ (kolor zielony na wykresie). 
+
+Dystrybuanta 2 rozkładu gamma z parametrami $k_2=7$ i $\lambda = 3$ (kolor pomarańczowy na wykresie). 
+
+Dystrybuanta 3 rozkładu gamma z parametrami $k_3=15$ i $\lambda = 9$ (kolor czerwony na wykresie).
+
+```{r}
+dist1<-pgamma(x, k1, lam1)
+dist2<-pgamma(x, k2, lam2)
+dist3<-pgamma(x, k3, lam3)
+```
+
+```{r}
+dist_plot <- ggplot() + geom_line(aes(x = x, y = dist1), color = "green") + geom_line(aes(x = x, y = dist2), color = "orange") + geom_line(aes(x = x, y = dist3), color = "red") +
+  labs(title='Dystrybuanty prób z rozkładu Gamma', x='Wartość', y='Dystrybuanta')
+dist_plot
+```
+
+## Zadanie 2. 
+
+Zweryfikuj empirycznie (np. za pomocą wykresu gęstości), że rozkład wykładniczy z parametrem $\lambda$ jest szczególnym przypadkiem rozkładu Gamma z parametrami $\lambda$ i $k=1$.
+
+Rozkład wykładniczy z parametrem $\lambda$ może być interpretowany jako szczególny przypadek rozkładu Gamma z parametrami $\lambda$ i $k=1$. Aby to zweryfikować, można wygenerować próbę z rozkładu Gamma z parametrami $\lambda=1$ i $k=1$, a następnie porównać ją z próbą z rozkładu wykładniczego z tym samym parametrem $\lambda$.
+
+```{r}
+sample_gamma <- rgamma(1000, shape = 1, rate = 1)
+sample_exp <- rexp(1000, rate = 1)
+den_sample_gamma <- dgamma(sample_gamma, shape = 1, rate = 1)
+den_sample_exp <-dexp(sample_exp, rate = 1)
+```
+Następnie rysujemy wykres gęstości rozkładu Gamma (niebieski) oraz gęstości rozkładu wykładniczego (czerowny).
+```{r}
+gamma_exp_same_plot <- ggplot()+geom_line(aes(x = sample_gamma, y = den_sample_gamma), color = "blue", alpha = 0.5) +
+  geom_line(aes(x = sample_exp, y = den_sample_exp), color = "red", alpha = 0.5) +
+  labs(title='Porównanie rozkładu Gamma z k=1 i λ=1 z rozkładem wykładniczym', x='Wartość', y='Gęstość')
+gamma_exp_same_plot
+```
+
+Widzimy, że wykresy gęstości obu próbek się ze sobą nakładają. Oznacza to że rozkład wykładniczy jest specjalnym przypadkiem rozkładu Gamma z odpowiednimi parametrami $\lambda$ oraz $k=1$.
+
+## Zadanie 3. 
+
+Zweryfikuj empirycznie (np. za pomocą wykresów gęstości), że suma $k$ niezależnych zmiennych o rozkładzie wykładniczym z tym samym parametrem $\lambda$ ma rozkład Gamma z parametrami $\lambda$, $k$.
+
+Dla potrzeb zadania, ustalamy sobie dowolne $k=12$ i $\lambda = 1$. Wyznaczamy funkcje, która generuje wektor próbek zależnych od ilości $k$. Następnie rozwijamy wektor w macierz i sumujemy ją po rzędach, aby uzyskać naszą próbkę złożoną z sum $k$ niezależnych zmiennych.
+
+```{r}
+k = 12
+lambd = 1
+list_of_exp_samples <- vector("list", k) 
+for (i in 1:k) {
+  list_of_exp_samples[[i]] <- rexp(1000, rate = lambd) 
+}
+list_of_exp_samples_matrix <- matrix(unlist(list_of_exp_samples), nrow = 1000, ncol = k, byrow = FALSE)
+
+sum_of_exp_samples_matrix <- rowSums(list_of_exp_samples_matrix)
+```
+Wyznaczamy odpowiednie gęstości. Rysujemy poszczególne wykresy: gęstości sumy niezależnych zmiennych z rozkładu wykładczniego (kolor czerwony) oraz z rozkładu Gamma (kolor zielony).
+```{r}
+gamma_sample_from_exp <- rgamma(1000, k, lambd)
+
+sum_of_exp_density <- dgamma(sum_of_exp_samples_matrix, k, lambd)
+gamma_sample_from_exp_density <- dgamma(gamma_sample_from_exp, k, lambd)
+
+gamma_exp_plot <- ggplot() + 
+  geom_line(aes(x=sum_of_exp_samples_matrix, y=sum_of_exp_density), color="red", alpha = 0.5) + 
+  geom_line(aes(x=gamma_sample_from_exp, y=gamma_sample_from_exp_density), color="green", alpha = 0.5) +
+  labs(tittle="Wykres gęstości rozkładu Gamma oraz gęstości sumy niezależnych zmiennych z rozkładu wykładniczego",x = "Wartość", y = "Gęstość")
+
+gamma_exp_plot
+```
+
+W wyniku powyższego kodu otrzymujemy wykres porównujący empiryczną gęstość rozkładu sumy np. 12 niezależnych zmiennych o rozkładzie wykładniczym z gęstością rozkładu Gamma z parametrami $\lambda=1$, $k=12$. Oba rozkłady pokrywają się, co potwierdza, że suma $k$ niezależnych zmiennych o rozkładzie wykładniczym z tym samym parametrem $\lambda$ ma rozkład Gamma z parametrami $\lambda$ i $k$.
+
+## Zadanie 4.
+
+Zweryfikuj empirycznie (np. za pomocą wykresów gęstości) stwierdzenie, że jeżeli zmienna $X$ ma rozkład Gamma z parametrami $\lambda$,$k$, to zmienna $cX$ (dla pewnego $c>0$) ma rozkład Gamma o parametrach $\frac{\lambda}{c}$, $k$.  
+
+Dla tego zadania dobieramy sobie dowolne $\lambda=6$ i $k=3$. Następnie wyznaczamy pierwszą próbkę z rozkładu gamma a później mnożymy ją przez nasz parametr $c=2$, aby uzyskać drugą próbkę z tego rozkładu.
+```{r}
+lambda4 <- 6
+k4 <- 3
+
+x <- rgamma(1000, k4, lambda4)
+c <- 2
+y <- c*x
+```
+Następnie wyznaczamy odpowiednie gęstości z tych próbek i tworzymy dwa wykresy, aby porównać ich zachowanie.
+```{r}
+first_density <- dgamma(x, k4, lambda4)
+second_density <- dgamma(y, k4, lambda4)
+
+ggplot() + geom_line(aes(x=x, y=first_density)) +
+  ggtitle(paste("Rozkład Gamma o parametrach λ =", lambda4, "i k =", k4)) +
+  xlab("Wartości próbki pierwszej") +  ylab("Gęstość pierwsza")
+
+ggplot() + geom_line(aes(x=y, y=second_density)) +
+  ggtitle(paste("Rozkład Gamma o parametrach λ =", lambda4/c, "i k =", k4)) +
+  xlab("Wartości próbki drugiej") + ylab("Gęstość druga")
+
+```
+
+Na powyższych wykresach gęstości można zauważyć, że oba wykresy gęstości przedstawiają ten sam rozkład (wykres drugi ma zawężoną skale "X" dwukrotnie przez parametr $c=2$). Możemy zatem wnioskować, że jeżeli zmienna $X$ ma rozkład Gamma z parametrami $\lambda$,$k$, to zmienna $cX$ (dla pewnego $c>0$) ma rozkład Gamma o parametrach $\frac{\lambda}{c}$, $k$.
+
+## Zadanie 5\*.
+
+Porównaj próby z rozkładu Gamma z ustalonym parametrem $\lambda$ i *dużymi* parametrami $k$ (proponuje $k > 50$) i próby z rozkładu normalnego ze średnią $\frac{k}{\lambda}$ i wariancją $\frac{k}{\lambda^2}$.
+
+Dla dowolnej $\lambda = 2$ oraz $k=100$ generujemy próbkę z rozkładu gamma oraz wyznaczamy jej gęstość.
+
+```{r}
+lambda <- 2
+k <- 100
+
+x <- rgamma(10000, k, lambda)
+gamma_density <- dgamma(x, k, lambda)
+```
+Następnie wyznaczamy średnią i wariancję z rozkładu normalnego posługując się $\lambda$ i $k$. Dzięki temu możemy wygenerować próbkę z rozkładu normalnego oraz jej gęstość, używając nowych parametrów $m$ i $sigma$. Na końcu rysujemy dwa wykresy porównujące te dwie próbki i ich gęstości.
+```{r}
+m <- k/lambda
+sigma <- sqrt(k)/lambda
+
+y <- rnorm(10000, m, sigma)
+norm_density <- dnorm(y, m, sigma)
+
+ggplot() +
+  geom_line(aes(x=x, y=gamma_density)) +
+  ggtitle(paste("Rozkład Gamma o parametrach λ =", lambda, "i k =", k)) +
+  xlab("Wartość") + ylab("Gęstość")
+
+ggplot() +
+  geom_line(aes(x=y, y=norm_density)) +
+  ggtitle(paste("Rozkład normalny o średniej m =", m, "i wariancji sigma^2 =", sigma^2)) +
+  xlab("Wartość") + ylab("Gęstość")
+
+```
+
+Na powyższych wykresach można zauważyć, że rozkład Gamma z dużymi parametrami $k$ wygląda podobnie do rozkładu normalnego o odpowiedniej wyliczonej średniej i wariancji. Można więc stwierdzić, że dla dużych wartości parametru $k$, rozkład Gamma zaczyna przypominać rozkład normalny ze średnią $\frac{k}{\lambda}$ i wariancją $\frac{k}{\lambda^2}$.
